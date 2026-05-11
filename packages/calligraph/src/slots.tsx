@@ -132,23 +132,15 @@ function SlotColumn({
 
 export function SlotsRenderer({
   text,
-  Component,
   transition,
   stagger,
   animateInitial,
-  className,
-  style,
-  rest,
 }: {
   text: string;
-  Component: React.ElementType;
   transition: Transition;
   stagger: number;
   animateInitial: boolean;
   onComplete?: () => void;
-  className?: string;
-  style?: React.CSSProperties;
-  rest: Record<string, unknown>;
 }) {
   const chars = splitGraphemes(text);
 
@@ -157,7 +149,7 @@ export function SlotsRenderer({
   const [digitKeys, setDigitKeys] = useState<number[]>(() =>
     chars.map((_, i) => i),
   );
-  const dirRef = useRef(1);
+  const [direction, setDirection] = useState(1);
   const mountedRef = useRef(false);
 
   useEffect(() => {
@@ -172,12 +164,11 @@ export function SlotsRenderer({
       nextIdRef.current,
     );
     nextIdRef.current = result.nextId;
-    dirRef.current = result.direction;
+    setDirection(result.direction);
     setDigitKeys(result.keys);
     setPrevText(text);
   }
 
-  const dir = dirRef.current;
   const prefixLen = (() => {
     const idx = chars.findIndex((c) => isDigit(c));
     return idx === -1 ? chars.length : idx;
@@ -188,72 +179,61 @@ export function SlotsRenderer({
 
   return (
     <MotionConfig transition={transition}>
-      <Component
-        aria-label={text}
+      <span
         style={{
           display: "inline-flex",
-          position: "relative",
-          ...style,
+          paddingTop: FADE_HEIGHT,
+          paddingBottom: FADE_HEIGHT,
+          marginTop: `calc(-1 * ${FADE_HEIGHT})`,
+          marginBottom: `calc(-1 * ${FADE_HEIGHT})`,
+          maskImage: FADE_MASK,
+          WebkitMaskImage: FADE_MASK,
         }}
-        className={className}
-        {...rest}
       >
-        <span
-          style={{
-            display: "inline-flex",
-            paddingTop: FADE_HEIGHT,
-            paddingBottom: FADE_HEIGHT,
-            marginTop: `calc(-1 * ${FADE_HEIGHT})`,
-            marginBottom: `calc(-1 * ${FADE_HEIGHT})`,
-            maskImage: FADE_MASK,
-            WebkitMaskImage: FADE_MASK,
-          }}
-        >
-          <AnimatePresence mode="popLayout" initial={animateInitial}>
-            {chars.map((char, i) => {
-              const isPrefix = i < prefixLen;
-              const outerKey = isPrefix
-                ? `pre-${i}`
-                : `col-${chars.length - 1 - i}`;
+        <AnimatePresence mode="popLayout" initial={animateInitial}>
+          {chars.map((char, i) => {
+            const isPrefix = i < prefixLen;
+            const outerKey = isPrefix
+              ? `pre-${i}`
+              : `col-${chars.length - 1 - i}`;
 
-              if (isPrefix || !isDigit(char)) {
-                return (
-                  <motion.span
-                    key={outerKey}
-                    layout="position"
-                    initial={false}
-                    exit={isPrefix ? undefined : { opacity: 0 }}
-                    style={{ display: "inline-block", whiteSpace: "pre" }}
-                  >
-                    {char}
-                  </motion.span>
-                );
-              }
-
-              const delay = (digitCount - 1 - digitIndex) * stagger;
-              digitIndex++;
-
+            if (isPrefix || !isDigit(char)) {
               return (
                 <motion.span
                   key={outerKey}
                   layout="position"
                   initial={false}
-                  exit={{ opacity: 0 }}
-                  style={{ display: "inline-block" }}
+                  exit={isPrefix ? undefined : { opacity: 0 }}
+                  style={{ display: "inline-block", whiteSpace: "pre" }}
                 >
-                  <SlotColumn
-                    digit={Number(char)}
-                    direction={dir}
-                    transition={transition}
-                    delay={delay}
-                    animateIn={mountedRef.current || animateInitial}
-                  />
+                  {char}
                 </motion.span>
               );
-            })}
-          </AnimatePresence>
-        </span>
-      </Component>
+            }
+
+            const delay = (digitCount - 1 - digitIndex) * stagger;
+            digitIndex++;
+
+            return (
+              <motion.span
+                key={outerKey}
+                layout="position"
+                initial={false}
+                exit={{ opacity: 0 }}
+                style={{ display: "inline-block" }}
+              >
+                <SlotColumn
+                  digit={Number(char)}
+                  direction={direction}
+                  transition={transition}
+                  delay={delay}
+                  animateIn={mountedRef.current || animateInitial}
+                />
+              </motion.span>
+            );
+          })}
+        </AnimatePresence>
+      </span>
     </MotionConfig>
   );
 }

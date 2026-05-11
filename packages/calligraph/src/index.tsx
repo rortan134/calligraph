@@ -105,7 +105,6 @@ export function Calligraph(props: CalligraphProps) {
     initial: animateInitial = false,
     onComplete,
     autoSize = true,
-    className,
     style,
     ...rest
   } = props;
@@ -115,24 +114,18 @@ export function Calligraph(props: CalligraphProps) {
 
   const rendererProps = {
     text: String(children ?? ""),
-    Component,
     transition,
     stagger,
     animateInitial,
     onComplete,
-    className,
-    style,
-    rest,
   };
 
-  let content: React.ReactNode;
-
-  if (variant === "number") {
-    content = <NumberRenderer {...rendererProps} />;
-  } else if (variant === "slots") {
-    content = <SlotsRenderer {...rendererProps} />;
-  } else {
-    content = (
+  const content: React.ReactNode =
+    variant === "number" ? (
+      <NumberRenderer {...rendererProps} />
+    ) : variant === "slots" ? (
+      <SlotsRenderer {...rendererProps} />
+    ) : (
       <TextRenderer
         {...rendererProps}
         driftX={driftX}
@@ -140,11 +133,17 @@ export function Calligraph(props: CalligraphProps) {
         trend={trend}
       />
     );
-  }
 
-  if (autoSize) {
-    return <AutoSizeWrapper transition={transition}>{content}</AutoSizeWrapper>;
-  }
-
-  return content;
+  return (
+    <Component
+      {...rest}
+      style={{ display: "inline-flex", position: "relative", ...style }}
+    >
+      {autoSize ? (
+        <AutoSizeWrapper transition={transition}>{content}</AutoSizeWrapper>
+      ) : (
+        content
+      )}
+    </Component>
+  );
 }
