@@ -2,7 +2,7 @@
 
 import type { Transition } from "motion/react";
 import { motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NumberRenderer } from "./number";
 import { type Animation, animations } from "./shared";
 import { SlotsRenderer } from "./slots";
@@ -24,6 +24,9 @@ export type CalligraphProps = Omit<
   autoSize?: boolean;
 };
 
+const useIsomorphicLayoutEffect =
+  typeof useLayoutEffect === "undefined" ? useEffect : useLayoutEffect;
+
 function AutoSizeWrapper({
   children,
   transition,
@@ -31,21 +34,18 @@ function AutoSizeWrapper({
   children: React.ReactNode;
   transition: Transition;
 }) {
-  const [element, setElement] = useState<HTMLElement | null>(null);
+  const elementRef = useRef<HTMLElement | null>(null);
   const [width, setWidth] = useState(0);
 
-  const ref = useCallback((node: HTMLElement | null) => {
-    setElement(node);
-  }, []);
-
-  useEffect(() => {
-    if (!element) return;
+  useIsomorphicLayoutEffect(() => {
+    const element = elementRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(([entry]) => {
       setWidth(Math.ceil(entry.contentRect.width));
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [element]);
+  }, []);
 
   return (
     <motion.span
@@ -53,7 +53,7 @@ function AutoSizeWrapper({
       transition={transition}
       style={{ display: "inline-flex" }}
     >
-      <span ref={ref} style={{ display: "inline-flex" }}>
+      <span ref={elementRef} style={{ display: "inline-flex" }}>
         {children}
       </span>
     </motion.span>
